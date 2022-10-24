@@ -24,7 +24,7 @@ const uint SLEEP_BUTTON_TIMEOUT = 5; // seconds
 // pins
 
 const byte LED_PIN = 22;
-const byte HOME_PIN = 4;
+const byte HOME_PIN = 4; // manually wired for sleep wakeup
 
 /* end config */
 
@@ -219,18 +219,13 @@ void i2c_conn_check () {
 
   classic.update();
 
-  CALIBRATION_MODE = classic.buttonX();
+  CALIBRATION_MODE = classic.buttonY();
 
   if (CALIBRATION_MODE) {
 
-    // for (byte axis = 0; axis < JoyUtil::AXIS_COUNT; axis++) {
-    //   joy.axis_min[axis] = 0.0;
-    //   joy.axis_max[axis] = 0.0;
-    // }
-
     #ifdef JOY_DEBUG
     Serial.print("calibration mode\n");
-    Serial.print("put all axes in neutral position then press start\n");
+    Serial.print("put all axes in neutral position then press select\n");
     #endif
 
     calibrate_interval.start();
@@ -259,28 +254,21 @@ void i2c_conn_check () {
   }
 }
 
-float axes_min[6] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
-float axes_max[6] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+float axes_min[4] = { 0.0, 0.0, 0.0, 0.0 };
+float axes_max[4] = { 0.0, 0.0, 0.0, 0.0 };
 
 byte CALIBRATION_STATE = 0;
-byte start_state_old = HIGH;
+byte special_btn_state_old = HIGH;
 
 void report_calibrate () {
-  // classic.update();
-
-  // byte old_start = joy.get_button_state(JoyUtil::BUTTON_START);
-
-  // read_dpad();
-  // read_buttons();
-  // read_axes();
   classic_poll();
 
-  byte start_state_new = joy.get_button_state(JoyUtil::BUTTON_START) == LOW;
-  bool start_pressed = start_state_old == HIGH && start_state_new == LOW;
-  start_state_old = start_state_new;
+  byte special_btn_state_new = joy.get_button_state(JoyUtil::BUTTON_START);
+  bool special_btn_pressed = special_btn_state_old == HIGH && special_btn_state_new == LOW;
+  special_btn_state_old = special_btn_state_new;
 
   if (CALIBRATION_STATE == 1) {
-    for (byte axis = 0; axis < JoyUtil::AXIS_COUNT; axis++) {
+    for (byte axis = 0; axis < 4; axis++) { // first 4 axes
       float state = joy.get_axis_state_raw(axis);
       if (state < axes_min[axis]) {
         axes_min[axis] = state;
@@ -291,27 +279,18 @@ void report_calibrate () {
       }
     }
   } else if (CALIBRATION_STATE == 0) {
-    for (byte axis = 0; axis < JoyUtil::AXIS_COUNT; axis++) {
+    for (byte axis = 0; axis < 4; axis++) { // first 4 axes
       joy.set_axis_mid(axis, joy.get_axis_state_raw(axis));
     }
   }
 
-  if (start_pressed) {
+  if (special_btn_pressed) {
     if (CALIBRATION_STATE == 0) {
       CALIBRATION_STATE = 1;
       #ifdef JOY_DEBUG
-      Serial.print("now move all axes full range then press start");
+      Serial.print("now move all axes full range then press select\n");
       #endif
     } else {
-      // these are fake analogs on this controller
-      joy.set_axis_min(JoyUtil::AXIS_LT, -1.0);
-      joy.set_axis_mid(JoyUtil::AXIS_LT, 0.0);
-      joy.set_axis_max(JoyUtil::AXIS_LT, 1.0);
-
-      joy.set_axis_min(JoyUtil::AXIS_RT, -1.0);
-      joy.set_axis_mid(JoyUtil::AXIS_RT, 0.0);
-      joy.set_axis_max(JoyUtil::AXIS_RT, 1.0);
-
       joy.prefs_write();
 
       #ifdef JOY_DEBUG

@@ -87,7 +87,7 @@ int16_t JoyUtil::map_axis_range_ble (float state) {
   return map_range(state, -1.0, 1.0, ble_axis_min, ble_axis_max);
 }
 
-void JoyUtil::set_axis_state (byte axis, float state) {
+float JoyUtil::clean_axis_value (byte axis, float state) {
   axis_states_raw[axis] = state;
 
   float state_calibrated = 0.0;
@@ -98,7 +98,11 @@ void JoyUtil::set_axis_state (byte axis, float state) {
     state_calibrated = map_range(state, axis_min[axis], axis_mid[axis], -1.0, 0.0);
   }
 
-  axis_states[axis] = dz_scaled_radial(state_calibrated);
+  return dz_scaled_radial(state_calibrated);
+}
+
+void JoyUtil::set_axis_state (byte axis, float state) {
+  axis_states[axis] = clean_axis_value(axis, state);
 }
 
 float JoyUtil::get_axis_state (byte axis) {
@@ -183,7 +187,7 @@ void JoyUtil::set_dpad_state (byte dpad_up, byte dpad_right, byte dpad_down, byt
 
 // https://gamingprojects.wordpress.com/2017/08/04/converting-analog-joystick-to-digital-joystick-signals/
 
-void JoyUtil::set_analog_dpad_state (byte axis_x, byte axis_y) {
+void JoyUtil::set_dpad_analog_state (byte axis_x, byte axis_y, float value_x, float value_y) {
   byte dpad_up = HIGH;
   byte dpad_down = HIGH;
   byte dpad_left = HIGH;
@@ -191,22 +195,22 @@ void JoyUtil::set_analog_dpad_state (byte axis_x, byte axis_y) {
 
   // squared deadzone?
 
-  const float x = axis_states[axis_x];
-  const float y = axis_states[axis_y];
+  const float x = clean_axis_value(axis_x, value_x);
+  const float y = clean_axis_value(axis_y, value_y);
 
   const float slope_y = SLOPE * y;
   const float slope_x = SLOPE * x;
 
   if (x > 0.0) {
-    if (x > slope_y) dpad_right = true;
+    if (x > slope_y) dpad_right = LOW;
   } else if (x < 0.0) {
-    if (x < slope_y) dpad_left = true;
+    if (x < slope_y) dpad_left = LOW;
   }
 
   if (y > 0.0) {
-    if (y > slope_x) dpad_down = true;
+    if (y > slope_x) dpad_down = LOW;
   } else if (y < 0.0) {
-    if (y < slope_x) dpad_up = true;
+    if (y < slope_x) dpad_up = LOW;
   }
 
   set_dpad_state(dpad_up, dpad_right, dpad_down, dpad_left);

@@ -7,8 +7,6 @@
 
 class JoyUtil {
   private:
-    Preferences preferences;
-
     const float SLOPE = 0.414214;
 
     uint16_t ble_axis_min = 0;
@@ -25,14 +23,15 @@ class JoyUtil {
     byte button_states[11] = { HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH };
     byte dpad_state = DPAD_CENTERED;
 
-    float axis_states[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-    float axis_states_raw[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    float axis_states[6] = { 0.0, 0.0, 0.0, 0.0, -1.0, -1.0 };
+    float axis_states_raw[6] = { 0.0, 0.0, 0.0, 0.0, -1.0, -1.0 };
 
     float axis_min[6] = { -1.0, -1.0, -1.0, -1.0, -1.0, -1.0 };
     float axis_mid[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     float axis_max[6] = { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 };
 
   public:
+    Preferences preferences;
 
     static const byte BUTTON_COUNT = 11;
     static const byte AXIS_COUNT = 6;
@@ -81,9 +80,11 @@ class JoyUtil {
 
     void configure_gamepad ();
     void set_axis_state (byte axis, float state);
+    float clean_axis_value (byte axis, float state);
+
     void set_button_state (byte btn, byte state);
     void set_dpad_state(byte dpad_up, byte dpad_right, byte dpad_down, byte dpad_left);
-    void set_analog_dpad_state(byte x_axis, byte y_axis);
+    void set_dpad_analog_state(byte axis_x, byte axis_y, float value_x, float value_y);
 
     byte get_button_state(byte btn);
     float get_axis_state(byte axis);
