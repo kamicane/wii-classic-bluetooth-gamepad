@@ -2,7 +2,7 @@
 #include <TickTwo.h>
 #include <NintendoExtensionCtrl.h>
 
-#include "joy_util.h"
+#include <BluJoy.h>
 
 // Green → SDA -> 19
 // Red → 3v3
@@ -30,7 +30,7 @@ const byte HOME_PIN = 4; // manually wired for sleep wakeup
 
 TaskHandle_t core0_handle;
 
-JoyUtil joy("Wii Classic Gamepad", "Nintendo", DEADZONE);
+BluJoy joy("Wii Classic Gamepad", "Nintendo", DEADZONE);
 
 bool IS_BLE_CONNECTED = false;
 bool IS_CLASSIC_CONNECTED = false;
@@ -98,31 +98,31 @@ void read_dpad () {
 }
 
 void read_buttons () {
-  joy.set_button_state(JoyUtil::BUTTON_A, !classic.buttonB());
-  joy.set_button_state(JoyUtil::BUTTON_B, !classic.buttonA());
-  joy.set_button_state(JoyUtil::BUTTON_X, !classic.buttonY());
-  joy.set_button_state(JoyUtil::BUTTON_Y, !classic.buttonX());
+  joy.set_button_state(BluJoy::BUTTON_A, !classic.buttonB());
+  joy.set_button_state(BluJoy::BUTTON_B, !classic.buttonA());
+  joy.set_button_state(BluJoy::BUTTON_X, !classic.buttonY());
+  joy.set_button_state(BluJoy::BUTTON_Y, !classic.buttonX());
 
-  joy.set_button_state(JoyUtil::BUTTON_START, !classic.buttonPlus());
-  joy.set_button_state(JoyUtil::BUTTON_SELECT, !classic.buttonMinus());
-  joy.set_button_state(JoyUtil::BUTTON_HOME, !classic.buttonHome());
+  joy.set_button_state(BluJoy::BUTTON_START, !classic.buttonPlus());
+  joy.set_button_state(BluJoy::BUTTON_SELECT, !classic.buttonMinus());
+  joy.set_button_state(BluJoy::BUTTON_HOME, !classic.buttonHome());
 
-  joy.set_button_state(JoyUtil::BUTTON_LB, !classic.buttonL());
-  joy.set_button_state(JoyUtil::BUTTON_RB, !classic.buttonR());
+  joy.set_button_state(BluJoy::BUTTON_LB, !classic.buttonL());
+  joy.set_button_state(BluJoy::BUTTON_RB, !classic.buttonR());
 }
 
 float map_axis_value (byte classic_axis_value, bool invert = false) {
-  if (invert) return JoyUtil::map_range(classic_axis_value, 0.0, 255.0, 1.0, -1.0);
-  return JoyUtil::map_range(classic_axis_value, 0.0, 255.0, -1.0, 1.0);
+  if (invert) return BluJoy::map_range(classic_axis_value, 0.0, 255.0, 1.0, -1.0);
+  return BluJoy::map_range(classic_axis_value, 0.0, 255.0, -1.0, 1.0);
 }
 
 void read_axes () {
-  joy.set_axis_state(JoyUtil::AXIS_LX, map_axis_value(classic.leftJoyX()));
-  joy.set_axis_state(JoyUtil::AXIS_LY, map_axis_value(classic.leftJoyY(), true));
-  joy.set_axis_state(JoyUtil::AXIS_RX, map_axis_value(classic.rightJoyX()));
-  joy.set_axis_state(JoyUtil::AXIS_RY, map_axis_value(classic.rightJoyY(), true));
-  joy.set_axis_state(JoyUtil::AXIS_LT, classic.buttonZL() ? 1.0 : -1.0);
-  joy.set_axis_state(JoyUtil::AXIS_RT, classic.buttonZR() ? 1.0 : -1.0);
+  joy.set_axis_state(BluJoy::AXIS_LX, map_axis_value(classic.leftJoyX()));
+  joy.set_axis_state(BluJoy::AXIS_LY, map_axis_value(classic.leftJoyY(), true));
+  joy.set_axis_state(BluJoy::AXIS_RX, map_axis_value(classic.rightJoyX()));
+  joy.set_axis_state(BluJoy::AXIS_RY, map_axis_value(classic.rightJoyY(), true));
+  joy.set_axis_state(BluJoy::AXIS_LT, classic.buttonZL() ? 1.0 : -1.0);
+  joy.set_axis_state(BluJoy::AXIS_RT, classic.buttonZR() ? 1.0 : -1.0);
 }
 
 #ifdef JOY_DEBUG
@@ -232,10 +232,10 @@ void i2c_conn_check () {
 
   } else {
 
-    joy.prefs_read();
+    joy.read_calibration_data();
 
     #ifdef JOY_DEBUG
-    for (byte axis = 0; axis < JoyUtil::AXIS_COUNT; axis++) {
+    for (byte axis = 0; axis < BluJoy::AXIS_COUNT; axis++) {
       Serial.print(String(joy.axis_names[axis]) +
         " min: " + String(joy.get_axis_min(axis)) +
         ", mid: " + String(joy.get_axis_mid(axis)) +
@@ -263,7 +263,7 @@ byte special_btn_state_old = HIGH;
 void report_calibrate () {
   classic_poll();
 
-  byte special_btn_state_new = joy.get_button_state(JoyUtil::BUTTON_START);
+  byte special_btn_state_new = joy.get_button_state(BluJoy::BUTTON_START);
   bool special_btn_pressed = special_btn_state_old == HIGH && special_btn_state_new == LOW;
   special_btn_state_old = special_btn_state_new;
 
@@ -291,10 +291,10 @@ void report_calibrate () {
       Serial.print("now move all axes full range then press select\n");
       #endif
     } else {
-      joy.prefs_write();
+      joy.write_calibration_data();
 
       #ifdef JOY_DEBUG
-      for (byte axis = 0; axis < JoyUtil::AXIS_COUNT; axis++) {
+      for (byte axis = 0; axis < BluJoy::AXIS_COUNT; axis++) {
         Serial.print(
           String(joy.axis_names[axis]) +
           " min: " + String(joy.get_axis_min(axis)) +
@@ -348,7 +348,7 @@ void report () {
 
   // FORCE SLEEP
 
-  if (joy.get_button_state(JoyUtil::BUTTON_SELECT) == LOW) {
+  if (joy.get_button_state(BluJoy::BUTTON_SELECT) == LOW) {
     if (button_sleep_timeout.state() != RUNNING) button_sleep_timeout.start();
   } else {
     button_sleep_timeout.stop();
@@ -364,16 +364,16 @@ void report () {
 
 #ifdef JOY_DEBUG
 void debug_common () {
-  for (byte btn = 0; btn < JoyUtil::BUTTON_COUNT; btn++) {
-    const std::string spacer = (btn < JoyUtil::BUTTON_COUNT - 1) ? ", " : "";
+  for (byte btn = 0; btn < BluJoy::BUTTON_COUNT; btn++) {
+    const std::string spacer = (btn < BluJoy::BUTTON_COUNT - 1) ? ", " : "";
     Serial.print(
       String(joy.button_names[btn]) +
       ": " + String(joy.get_button_state(btn)) + spacer.c_str()
     );
   }
   Serial.print(" :: ");
-  for (byte axis = 0; axis < JoyUtil::AXIS_COUNT; axis++) {
-    const std::string spacer = (axis < JoyUtil::AXIS_COUNT - 1) ? ", " : "";
+  for (byte axis = 0; axis < BluJoy::AXIS_COUNT; axis++) {
+    const std::string spacer = (axis < BluJoy::AXIS_COUNT - 1) ? ", " : "";
     Serial.print(
       String(joy.axis_names[axis]) +
       ": " + String(joy.get_axis_state(axis)) + "(" + String(joy.get_axis_state_raw(axis)) + ")" + spacer.c_str()
