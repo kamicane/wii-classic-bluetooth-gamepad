@@ -47,6 +47,8 @@ Uses [NintendoExtensionCtrl](https://github.com/dmadison/NintendoExtensionCtrl) 
 
 ## How I built it
 
+![assembly](/img/07-wiring.jpg)
+
 - Disassembled the controller, trimmed the shell (look in [/img](/img))
 - Desoldered the battery connector from the Esp32 since it's too tall otherwise
 - Taped the Esp32 to the bottom pcb (the one with the analogs) carefully and making sure it fit within the shell. Then I trimmed more
